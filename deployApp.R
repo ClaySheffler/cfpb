@@ -1,7 +1,8 @@
 # deployApp.R
 
 library(rsconnect)
-rsconnect::deployApp('/projects/cfpb/server.R') # ?
+rsconnect::deployApp()
 
 # library(shiny) # ?
 # runApp() # ?
+# shinyApp()
