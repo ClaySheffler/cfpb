@@ -3,8 +3,9 @@ title:
 account: sheffler
 server: shinyapps.io
 appId: 160585
-bundleId: 738070
+bundleId: 738075
 url: https://sheffler.shinyapps.io/cfpb/
-when: 1488957480.30532
+when: 1488957903.74093
 asMultiple: FALSE
 asStatic: FALSE
+ignoredFiles: app.R|data.R|deployApp.R|README.Rmd
