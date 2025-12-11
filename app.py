@@ -1,286 +1,405 @@
 """
-Friday the 13th Effect - Interactive Visualization
-Python/Streamlit implementation
+CFPB Consumer Complaints Database - Interactive Explorer
+Python/Streamlit Application
 
-This app visualizes whether there's a significant difference in U.S. births
-on the 13th of each month compared to the 6th and 20th.
+This app provides an interactive interface for exploring and analyzing the
+Consumer Financial Protection Bureau's consumer complaints database.
 
-Data Source: CDC/NCHS, Social Security Administration
+Data Source: https://www.consumerfinance.gov/data-research/consumer-complaints/
+Updated: December 2025
 """
 
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
 import plotly.express as px
-from pathlib import Path
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+from cfpb_data import load_cfpb_api, get_data_summary
+from cfpb_analysis import (
+    analyze_top_products,
+    analyze_by_state,
+    analyze_response_rates,
+    analyze_trends_over_time,
+    analyze_product_issues,
+    visualize_top_products,
+    visualize_state_distribution,
+    visualize_response_breakdown,
+    visualize_trends
+)
 
 # Page configuration
 st.set_page_config(
-    page_title="The Friday the 13th Effect",
-    page_icon="📅",
-    layout="wide"
+    page_title="CFPB Complaints Explorer",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Load data
-@st.cache_data
-def load_data():
-    """Load birth data from CSV file or generate sample data"""
-    data_path = Path("data/births.csv")
-
-    if data_path.exists():
-        df = pd.read_csv(data_path)
-    else:
-        # Generate sample data if file doesn't exist
-        st.warning("⚠️ Data file not found. Using sample data for demonstration.")
-        df = generate_sample_data()
-
-    return df
-
-
-def generate_sample_data():
-    """Generate sample birth data for demonstration purposes"""
-    import numpy as np
-
-    np.random.seed(42)
-    years = range(1969, 1989)
-    months = range(1, 13)
-    days = [6, 13, 20]
-    days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday',
-                    'Friday', 'Saturday', 'Sunday']
-
-    data = []
-    for year in years:
-        for month in months:
-            for day in days:
-                for dow in days_of_week:
-                    # Simulate slight decrease on Friday the 13th
-                    base_births = 10000
-                    if dow == 'Friday' and day == 13:
-                        births = int(base_births * np.random.uniform(0.85, 0.95))
-                    else:
-                        births = int(base_births * np.random.uniform(0.95, 1.05))
-
-                    data.append({
-                        'year': year,
-                        'month': month,
-                        'date_of_month': day,
-                        'day_of_week': dow,
-                        'births': births
-                    })
-
-    return pd.DataFrame(data)
-
-
-def calculate_diff(df, year_range):
-    """
-    Calculate the difference between births on 13th vs average of 6th and 20th
-
-    Args:
-        df: DataFrame with birth data
-        year_range: Tuple of (min_year, max_year)
-
-    Returns:
-        DataFrame with differences by day of week
-    """
-    # Filter by year range
-    filtered = df[df['year'].between(year_range[0], year_range[1])]
-
-    # Filter to only 6th, 13th, and 20th
-    filtered = filtered[filtered['date_of_month'].isin([6, 13, 20])]
-
-    # Create day category
-    filtered['day_category'] = filtered['date_of_month'].apply(
-        lambda x: 'thirteen' if x == 13 else 'not_thirteen'
-    )
-
-    # Calculate mean births by day of week and category
-    grouped = filtered.groupby(['day_of_week', 'day_category'])['births'].mean().reset_index()
-
-    # Pivot to get thirteen and not_thirteen columns
-    pivoted = grouped.pivot(index='day_of_week', columns='day_category', values='births').reset_index()
-
-    # Calculate percentage point difference
-    pivoted['diff_ppt'] = ((pivoted['thirteen'] - pivoted['not_thirteen']) /
-                           pivoted['not_thirteen']) * 100
-
-    # Ensure proper day ordering
-    day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday',
-                 'Friday', 'Saturday', 'Sunday']
-    pivoted['day_of_week'] = pd.Categorical(pivoted['day_of_week'],
-                                            categories=day_order,
-                                            ordered=True)
-    pivoted = pivoted.sort_values('day_of_week')
-
-    return pivoted
-
-
-def create_chart(data, plot_type, theme):
-    """
-    Create Plotly chart based on selected type and theme
-
-    Args:
-        data: DataFrame with diff_ppt column
-        plot_type: Type of chart ('scatter', 'bar', 'line')
-        theme: Color theme for the chart
-
-    Returns:
-        Plotly figure object
-    """
-    # Theme colors
-    themes = {
-        'No theme': {'bg': 'white', 'color': 'royalblue', 'grid': 'lightgray'},
-        'Dark': {'bg': '#1e1e1e', 'color': '#00d9ff', 'grid': '#404040'},
-        'Economist': {'bg': '#d5e4eb', 'color': '#01a2d9', 'grid': '#6794a7'},
-        'FiveThirtyEight': {'bg': '#f0f0f0', 'color': '#008fd5', 'grid': '#cbcbcb'},
-        'Plotly': {'bg': 'white', 'color': '#636efa', 'grid': '#e5ecf6'},
-        'Seaborn': {'bg': '#eaeaf2', 'color': '#4c72b0', 'grid': '#ffffff'},
+# Custom CSS
+st.markdown("""
+<style>
+    .main-header {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #1f77b4;
+        margin-bottom: 1rem;
     }
+    .stat-box {
+        background-color: #f0f2f6;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        border-left: 4px solid #1f77b4;
+    }
+    .metric-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #1f77b4;
+    }
+    .metric-label {
+        font-size: 0.9rem;
+        color: #666;
+        text-transform: uppercase;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-    theme_config = themes.get(theme, themes['No theme'])
 
-    # Create figure based on plot type
-    if plot_type == 'scatter':
-        fig = go.Figure(data=go.Scatter(
-            x=data['day_of_week'],
-            y=data['diff_ppt'],
-            mode='markers',
-            marker=dict(size=12, color=theme_config['color']),
-            name='Difference, in ppt',
-            hovertemplate='<b>%{x}</b><br>Difference: %{y:.4f} ppt<extra></extra>'
-        ))
-    elif plot_type == 'bar':
-        fig = go.Figure(data=go.Bar(
-            x=data['day_of_week'],
-            y=data['diff_ppt'],
-            marker_color=theme_config['color'],
-            name='Difference, in ppt',
-            hovertemplate='<b>%{x}</b><br>Difference: %{y:.4f} ppt<extra></extra>'
-        ))
-    else:  # line
-        fig = go.Figure(data=go.Scatter(
-            x=data['day_of_week'],
-            y=data['diff_ppt'],
-            mode='lines+markers',
-            line=dict(color=theme_config['color'], width=2),
-            marker=dict(size=8),
-            name='Difference, in ppt',
-            hovertemplate='<b>%{x}</b><br>Difference: %{y:.4f} ppt<extra></extra>'
-        ))
-
-    # Update layout
-    fig.update_layout(
-        title={
-            'text': 'The Friday the 13th Effect',
-            'font': {'size': 24, 'weight': 'bold'},
-            'x': 0.5,
-            'xanchor': 'center'
-        },
-        xaxis_title='Day of Week',
-        yaxis_title='Difference, in ppt',
-        plot_bgcolor=theme_config['bg'],
-        paper_bgcolor=theme_config['bg'],
-        height=500,
-        hovermode='closest',
-        showlegend=False,
-        xaxis=dict(
-            gridcolor=theme_config['grid'],
-            showgrid=True
-        ),
-        yaxis=dict(
-            gridcolor=theme_config['grid'],
-            showgrid=True,
-            zeroline=True,
-            zerolinewidth=2,
-            zerolinecolor='gray'
-        )
+@st.cache_data(ttl=3600)
+def load_data(size, date_min, product_filter, state_filter):
+    """Load data with caching (1 hour TTL)"""
+    return load_cfpb_api(
+        size=size,
+        date_received_min=date_min,
+        product=product_filter if product_filter != "All" else None,
+        state=state_filter if state_filter != "All" else None
     )
 
-    return fig
 
-
-# Main app
 def main():
-    # Title
-    st.title("📅 The Friday the 13th Effect")
+    # Header
+    st.markdown('<div class="main-header">📊 CFPB Consumer Complaints Explorer</div>',
+                unsafe_allow_html=True)
 
-    # Load data
-    births = load_data()
-
-    # Get year range from data
-    years = sorted(births['year'].unique())
-    min_year, max_year = int(min(years)), int(max(years))
-
-    # Sidebar controls
-    st.sidebar.header("Controls")
-
-    year_range = st.sidebar.slider(
-        "Year Range",
-        min_value=min_year,
-        max_value=max_year,
-        value=(min_year, max_year),
-        step=1
-    )
-
-    plot_type = st.sidebar.selectbox(
-        "Plot Type",
-        options=['scatter', 'bar', 'line'],
-        format_func=lambda x: x.capitalize()
-    )
-
-    theme = st.sidebar.selectbox(
-        "Theme",
-        options=['No theme', 'Dark', 'Economist', 'FiveThirtyEight',
-                'Plotly', 'Seaborn']
-    )
-
-    # Info section
-    st.markdown(f"""
-    **Difference in the share of U.S. births on the 13th of each month from the
-    average of births on the 6th and 20th**
-
-    📊 **Years**: {year_range[0]} - {year_range[1]}
-
-    💡 **How it works**: This visualization compares birth rates on the 13th of each month
-    with the average of the 6th and 20th to detect any "Friday the 13th effect" - a phenomenon
-    where births may be lower on Friday the 13th due to superstition affecting scheduled
-    procedures or reporting.
+    st.markdown("""
+    Explore and analyze consumer complaints submitted to the **Consumer Financial Protection Bureau (CFPB)**.
+    This interactive dashboard provides insights into complaint patterns, company responses, and trends over time.
     """)
 
-    # Calculate differences
-    diff_data = calculate_diff(births, year_range)
+    # Sidebar - Data Loading Controls
+    st.sidebar.header("⚙️ Data Controls")
 
-    # Create and display chart
-    fig = create_chart(diff_data, plot_type, theme)
-    st.plotly_chart(fig, use_container_width=True)
+    # Date range
+    default_date = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
+    date_min = st.sidebar.date_input(
+        "From Date",
+        value=datetime.strptime(default_date, "%Y-%m-%d"),
+        max_value=datetime.now()
+    ).strftime("%Y-%m-%d")
 
-    # Data source
-    st.caption("📈 Sources: CDC/NCHS, Social Security Administration")
+    # Sample size
+    sample_size = st.sidebar.select_slider(
+        "Sample Size",
+        options=[100, 500, 1000, 2000, 5000, 10000],
+        value=1000,
+        help="Number of complaints to load (larger = slower)"
+    )
 
-    # Show raw data (expandable)
-    with st.expander("📊 View Calculated Data"):
-        st.dataframe(
-            diff_data[['day_of_week', 'thirteen', 'not_thirteen', 'diff_ppt']]
-            .rename(columns={
-                'day_of_week': 'Day of Week',
-                'thirteen': 'Avg Births (13th)',
-                'not_thirteen': 'Avg Births (6th & 20th)',
-                'diff_ppt': 'Difference (ppt)'
-            }),
-            hide_index=True
+    # Filters
+    st.sidebar.markdown("### 🔍 Filters")
+    product_filter = st.sidebar.selectbox(
+        "Product",
+        ["All", "Credit card", "Mortgage", "Bank account or service",
+         "Credit reporting", "Student loan", "Debt collection"],
+        help="Filter by product type"
+    )
+
+    state_filter = st.sidebar.selectbox(
+        "State",
+        ["All", "CA", "TX", "FL", "NY", "PA", "IL", "OH", "GA", "NC", "MI"],
+        help="Filter by state"
+    )
+
+    # Load data button
+    if st.sidebar.button("🔄 Load Data", type="primary"):
+        st.cache_data.clear()
+
+    # Load data
+    with st.spinner("Loading CFPB complaint data..."):
+        try:
+            df = load_data(sample_size, date_min, product_filter, state_filter)
+
+            if len(df) == 0:
+                st.error("No data found with the selected filters. Try adjusting your criteria.")
+                return
+
+        except Exception as e:
+            st.error(f"Error loading data: {e}")
+            st.info("The CFPB API may be temporarily unavailable. Please try again later.")
+            return
+
+    # Data Summary
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 📈 Data Summary")
+    st.sidebar.metric("Total Complaints", f"{len(df):,}")
+
+    if 'Date received' in df.columns:
+        date_range = f"{df['Date received'].min()} to {df['Date received'].max()}"
+        st.sidebar.caption(f"📅 {date_range}")
+
+    # Main content tabs
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "📊 Overview",
+        "🏢 Products & Issues",
+        "🗺️ Geographic",
+        "📈 Trends",
+        "📋 Raw Data"
+    ])
+
+    # TAB 1: Overview
+    with tab1:
+        st.header("Overview")
+
+        # Key metrics
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            st.markdown('<div class="stat-box">', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-value">{len(df):,}</div>', unsafe_allow_html=True)
+            st.markdown('<div class="metric-label">Total Complaints</div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        with col2:
+            if 'Product' in df.columns:
+                unique_products = df['Product'].nunique()
+                st.markdown('<div class="stat-box">', unsafe_allow_html=True)
+                st.markdown(f'<div class="metric-value">{unique_products}</div>', unsafe_allow_html=True)
+                st.markdown('<div class="metric-label">Product Types</div>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+
+        with col3:
+            if 'Company' in df.columns:
+                unique_companies = df['Company'].nunique()
+                st.markdown('<div class="stat-box">', unsafe_allow_html=True)
+                st.markdown(f'<div class="metric-value">{unique_companies}</div>', unsafe_allow_html=True)
+                st.markdown('<div class="metric-label">Companies</div>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+
+        with col4:
+            if 'Timely response?' in df.columns:
+                timely_pct = (df['Timely response?'] == 'Yes').sum() / len(df) * 100
+                st.markdown('<div class="stat-box">', unsafe_allow_html=True)
+                st.markdown(f'<div class="metric-value">{timely_pct:.1f}%</div>', unsafe_allow_html=True)
+                st.markdown('<div class="metric-label">Timely Response</div>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        # Top products
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.subheader("Top Products")
+            if 'Product' in df.columns:
+                fig = visualize_top_products(df, top_n=10)
+                st.plotly_chart(fig, use_container_width=True)
+
+        with col2:
+            st.subheader("Company Response Breakdown")
+            if 'Company response to consumer' in df.columns:
+                try:
+                    fig = visualize_response_breakdown(df)
+                    st.plotly_chart(fig, use_container_width=True)
+                except:
+                    st.info("Not enough data for response breakdown")
+
+        # Response statistics
+        st.subheader("Response Statistics")
+        response_stats = analyze_response_rates(df)
+
+        if not response_stats.empty:
+            cols = st.columns(len(response_stats.columns))
+            for idx, col_name in enumerate(response_stats.columns):
+                with cols[idx]:
+                    value = response_stats[col_name].iloc[0]
+                    if isinstance(value, (int, float)):
+                        st.metric(col_name, f"{value:.1f}%")
+                    else:
+                        st.metric(col_name, value)
+
+    # TAB 2: Products & Issues
+    with tab2:
+        st.header("Products & Issues Analysis")
+
+        # Top products table
+        st.subheader("Top Complaint Products")
+        top_products = analyze_top_products(df, top_n=15)
+        st.dataframe(top_products, use_container_width=True, hide_index=True)
+
+        # Product-specific analysis
+        st.markdown("---")
+        st.subheader("Product Deep Dive")
+
+        if 'Product' in df.columns:
+            available_products = df['Product'].value_counts().head(10).index.tolist()
+            selected_product = st.selectbox(
+                "Select a product to analyze",
+                available_products
+            )
+
+            if selected_product and 'Issue' in df.columns:
+                col1, col2 = st.columns([2, 1])
+
+                with col1:
+                    issues = analyze_product_issues(df, selected_product, top_n=10)
+                    if not issues.empty:
+                        fig = px.bar(
+                            issues,
+                            x='Count',
+                            y='Issue',
+                            orientation='h',
+                            title=f'Top Issues for {selected_product}',
+                            text='Count',
+                            color='Count',
+                            color_continuous_scale='Reds'
+                        )
+                        fig.update_layout(
+                            yaxis={'categoryorder': 'total ascending'},
+                            showlegend=False
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+
+                with col2:
+                    st.markdown("#### Issue Statistics")
+                    if not issues.empty:
+                        for _, row in issues.head(5).iterrows():
+                            st.metric(
+                                row['Issue'][:30] + "..." if len(row['Issue']) > 30 else row['Issue'],
+                                f"{row['Count']:,}",
+                                f"{row['Percentage']:.1f}%"
+                            )
+
+    # TAB 3: Geographic
+    with tab3:
+        st.header("Geographic Distribution")
+
+        if 'State' in df.columns:
+            # Map
+            st.subheader("Complaints by State")
+            try:
+                fig = visualize_state_distribution(df)
+                st.plotly_chart(fig, use_container_width=True)
+            except Exception as e:
+                st.info("Map visualization unavailable")
+
+            # Top states
+            col1, col2 = st.columns([2, 1])
+
+            with col1:
+                state_data = analyze_by_state(df, top_n=20)
+                fig = px.bar(
+                    state_data,
+                    x='Count',
+                    y='State',
+                    orientation='h',
+                    title='Top 20 States by Complaint Count',
+                    text='Count',
+                    color='Count',
+                    color_continuous_scale='Blues'
+                )
+                fig.update_layout(
+                    yaxis={'categoryorder': 'total ascending'},
+                    showlegend=False
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+            with col2:
+                st.markdown("#### Top States")
+                st.dataframe(state_data.head(10), use_container_width=True, hide_index=True)
+
+    # TAB 4: Trends
+    with tab4:
+        st.header("Trends Over Time")
+
+        if 'Date received' in df.columns:
+            # Frequency selector
+            freq = st.radio(
+                "Grouping",
+                options=['D', 'W', 'M'],
+                format_func=lambda x: {'D': 'Daily', 'W': 'Weekly', 'M': 'Monthly'}[x],
+                horizontal=True
+            )
+
+            # Trend chart
+            try:
+                fig = visualize_trends(df, freq=freq)
+                st.plotly_chart(fig, use_container_width=True)
+            except Exception as e:
+                st.error(f"Error creating trend chart: {e}")
+
+            # Summary statistics
+            st.subheader("Trend Statistics")
+            trends = analyze_trends_over_time(df, freq=freq)
+
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Average per Period", f"{trends['Count'].mean():.0f}")
+            with col2:
+                st.metric("Peak Period", f"{trends['Count'].max():,}")
+            with col3:
+                st.metric("Data Points", f"{len(trends)}")
+
+    # TAB 5: Raw Data
+    with tab5:
+        st.header("Raw Data")
+
+        # Column selector
+        if st.checkbox("Select specific columns"):
+            available_cols = df.columns.tolist()
+            selected_cols = st.multiselect(
+                "Choose columns to display",
+                available_cols,
+                default=available_cols[:10] if len(available_cols) > 10 else available_cols
+            )
+            display_df = df[selected_cols] if selected_cols else df
+        else:
+            display_df = df
+
+        # Display data
+        st.dataframe(display_df, use_container_width=True)
+
+        # Download button
+        csv = display_df.to_csv(index=False)
+        st.download_button(
+            label="📥 Download as CSV",
+            data=csv,
+            file_name=f"cfpb_complaints_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime="text/csv"
         )
 
-    # Sidebar info
+        # Data info
+        with st.expander("📊 Data Information"):
+            st.write(f"**Shape:** {display_df.shape[0]:,} rows × {display_df.shape[1]} columns")
+            st.write(f"**Memory Usage:** {display_df.memory_usage(deep=True).sum() / 1024 / 1024:.2f} MB")
+            st.write("**Columns:**")
+            st.write(display_df.dtypes)
+
+    # Footer
     st.sidebar.markdown("---")
     st.sidebar.markdown("""
     ### About
 
-    This app explores whether there's a measurable difference in birth rates
-    on Friday the 13th compared to other days.
+    This app provides interactive analysis of the CFPB Consumer Complaints Database.
 
-    **Data**: U.S. birth records from CDC/NCHS and SSA
+    **Data Source:** [CFPB](https://www.consumerfinance.gov/data-research/consumer-complaints/)
 
-    **Method**: Compare births on the 13th with average of 6th and 20th
-    of each month to control for day-of-month effects.
+    **Updates:** Daily
+
+    **Data Range:** 2011 - Present
+    """)
+
+    st.sidebar.info("""
+    💡 **Tip:** Use filters to narrow down specific products, states, or time periods.
+    Data is cached for 1 hour for better performance.
     """)
 
 
