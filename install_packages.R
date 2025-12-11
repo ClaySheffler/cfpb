@@ -1,0 +1,1 @@
+install.packages(c("shiny", "highcharter", "dplyr", "tidyr"))

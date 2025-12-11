@@ -6,7 +6,7 @@ library(tidyr)
 
 # Load data ---------------------------------------------------------
 births <- read.csv("data/births.csv")
-shiny-examples/118-highcharter-births/data/births.csv
+#shiny-examples/118-highcharter-births/data/births.csv
 
 # Determine years in data -------------------------------------------
 years <- unique(births$year)
