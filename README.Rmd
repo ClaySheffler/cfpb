@@ -1,12 +1,159 @@
-# cfpb
+# CFPB Shiny Applications
 
-This shiny app is deployed here :  https://sheffler.shinyapps.io/cfpb/
+This repository contains R Shiny applications for data visualization and analysis, with a focus on government open data sources.
 
-## files 
-app.R
+## Current Deployment
 
-not in use files :
-ui.R -- user interface
-server.R
-data.R
-deployApp.R
+The active app is deployed here: https://sheffler.shinyapps.io/cfpb/
+
+**Current App**: "The Friday the 13th Effect" - Interactive visualization of U.S. birth patterns
+
+## Repository Contents
+
+### Active Files
+
+- **app.R** - Main Shiny application (Friday 13th birth data visualization)
+  - Interactive charts with Highcharter
+  - Year range slider and plot type selector
+  - Multiple theme options
+
+### CFPB Consumer Complaints Tools (Updated December 2025)
+
+The following files provide tools for analyzing the **CFPB Consumer Complaint Database**:
+
+- **data.R** - Updated script to load CFPB consumer complaint data
+  - ✅ **NEW**: Uses current CFPB data source (updated daily through 2025)
+  - Three methods for accessing data:
+    1. Direct CSV download (recommended)
+    2. CFPB REST API (for filtered queries)
+    3. Data.gov catalog
+  - Replaces deprecated Socrata endpoint
+
+- **ui.R** - User interface for interactive Socrata data analyzer
+  - Generic tool for exploring any CSV data from Socrata or similar sources
+  - Dynamic scatter plots and box plots with zoom
+  - Variable selection and data tables
+
+- **server.R** - Server logic for Socrata data analyzer
+  - Supports any CSV endpoint
+  - Interactive visualizations with ggplot2
+  - Point identification and data exploration
+
+- **example_usage.R** - ✨ **NEW**: Examples for using the updated CFPB data
+  - Complete examples of data loading
+  - Sample analyses (top products, states, response rates)
+  - Integration instructions for Shiny apps
+
+### Deprecated Files
+
+- **deployApp.R** - Old deployment script (no longer used)
+
+### Other Files
+
+- **rbokeh.Rmd** - R Notebook exploring rbokeh visualization library
+- **rbokeh.nb.html** - Rendered notebook output
+
+## CFPB Consumer Complaints Database
+
+### Data Source
+
+The CFPB Consumer Complaints Database contains complaints about consumer financial products and services submitted to the Consumer Financial Protection Bureau.
+
+- **Official Page**: https://www.consumerfinance.gov/data-research/consumer-complaints/
+- **Updates**: Daily
+- **Data Range**: 2011 - Present (2024-2025 data available)
+- **Size**: 1.8+ million complaints (as of 2024-2025)
+
+### What Changed (December 2025 Update)
+
+❌ **Old Endpoint** (no longer works):
+```r
+# This no longer works:
+url <- "https://data.consumerfinance.gov/resource/jhzv-w97w"
+df <- RSocrata::read.socrata(url)
+```
+
+✅ **New Approach** (updated in data.R):
+```r
+# Option 1: Direct CSV download
+url <- "https://files.consumerfinance.gov/ccdb/complaints.csv.zip"
+# See data.R for complete implementation
+
+# Option 2: Use the API
+api_url <- "https://www.consumerfinance.gov/data-research/consumer-complaints/search/api/v1/"
+# See example_usage.R for API examples
+```
+
+### Getting Started
+
+1. **Load the complete dataset**:
+   ```r
+   source("data.R")
+   # The 'df' variable now contains all CFPB complaints
+   ```
+
+2. **Use the API for filtered queries**:
+   ```r
+   # See example_usage.R for complete examples
+   library(httr)
+   response <- GET("https://www.consumerfinance.gov/data-research/consumer-complaints/search/api/v1/",
+                   query = list(format = "csv", size = 1000))
+   df <- read.csv(text = content(response, "text"))
+   ```
+
+3. **Run the interactive Shiny analyzer**:
+   ```r
+   # The ui.R and server.R files can be used with CFPB data
+   # Just provide the API CSV endpoint in the URL field
+   shiny::runApp()
+   ```
+
+### Available Data Formats
+
+- CSV (recommended for R)
+- JSON
+- XML
+- Excel (XLS/XLSX)
+
+### API Documentation
+
+- Main API Docs: https://cfpb.github.io/api/ccdb/
+- API Search Interface: https://cfpb.github.io/ccdb5-api/
+- Data.gov Catalog: https://catalog.data.gov/dataset/consumer-complaint-database
+
+### Example Analyses
+
+The `example_usage.R` file includes:
+- Loading data from CSV and API
+- Analyzing top complaint products
+- Analyzing complaints by state
+- Calculating timely response rates
+- Visualizations with ggplot2
+
+## Requirements
+
+### For CFPB Tools
+```r
+install.packages(c("readr", "dplyr", "ggplot2", "httr"))
+```
+
+### For Shiny Apps
+```r
+install.packages(c("shiny", "shinythemes", "ggplot2", "highcharter", "tidyr"))
+```
+
+## Project History
+
+1. Started as CFPB consumer complaints analyzer using Socrata API
+2. Evolved into general-purpose Socrata data exploration tool
+3. Added Friday the 13th birth data visualization (current deployment)
+4. **December 2025**: Updated CFPB data access to use current official sources
+
+## License
+
+This is a personal learning/demo project exploring R Shiny capabilities and government open data.
+
+---
+
+**Last Updated**: December 2025
+**Maintainer**: sheffler
