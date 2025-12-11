@@ -1,0 +1,18 @@
+# CFPB Data Visualization & Analysis Tools
+# Python Dependencies
+
+# Web Framework
+streamlit>=1.28.0
+
+# Data Processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Visualization
+plotly>=5.17.0
+
+# HTTP Requests
+requests>=2.31.0
+
+# Optional: For enhanced functionality
+openpyxl>=3.1.0  # Excel file support
