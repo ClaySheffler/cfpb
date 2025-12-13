@@ -244,8 +244,8 @@ def analyze_trends_over_time(df: pd.DataFrame, freq: str = 'M') -> pd.DataFrame:
     if 'Date received' not in df.columns:
         raise ValueError("DataFrame must contain 'Date received' column")
 
-    df['Date received'] = pd.to_datetime(df['Date received'])
-
+    # The 'Date received' column is already parsed into datetime objects
+    # during the data loading step, so no conversion is needed here.
     # Group by time period
     time_series = df.groupby(pd.Grouper(key='Date received', freq=freq)).size()
     time_series = time_series.reset_index()
