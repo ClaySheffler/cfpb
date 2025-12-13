@@ -1,0 +1,2405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CFPB Consumer Complaints - Full Dataset Analysis</title>
+    <style>
+        :root {
+            --primary-color: #1a5f7a;
+            --secondary-color: #57a0d3;
+            --background-color: #f5f7fa;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --border-color: #ddd;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 40px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .data-note {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        .summary-card .value {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .summary-card .label {
+            color: #666;
+            font-size: 0.95em;
+            margin-top: 5px;
+        }
+
+        .section {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .section h2 {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .section h3 {
+            color: #555;
+            margin: 20px 0 15px;
+            font-size: 1.2em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 0.9em;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        tr:hover {
+            background-color: #e9ecef;
+        }
+
+        .progress-bar {
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            height: 20px;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .number {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+            text-align: right;
+        }
+
+        .insights {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        .insights h4 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .insights ul {
+            margin-left: 20px;
+        }
+
+        .insights li {
+            margin: 8px 0;
+        }
+
+        .toc {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .toc h2 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .toc ul {
+            list-style: none;
+            columns: 2;
+        }
+
+        .toc li {
+            margin: 8px 0;
+        }
+
+        .toc a {
+            color: var(--secondary-color);
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .recommendation {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .recommendation h4 {
+            color: #155724;
+            margin-bottom: 10px;
+        }
+
+        .cross-tab {
+            overflow-x: auto;
+        }
+
+        .cross-tab table {
+            min-width: 800px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            margin-top: 30px;
+        }
+
+        @media (max-width: 768px) {
+            header {
+                padding: 20px;
+            }
+
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .toc ul {
+                columns: 1;
+            }
+
+            .section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <header>
+            <h1>CFPB Consumer Complaints Analysis</h1>
+            <div class="subtitle">Full Dataset Analysis Report - Generated 2025-12-13 07:31:17</div>
+        </header>
+
+        <div class="data-note">
+            <strong>Note:</strong> This report uses simulated data based on actual CFPB statistics from their 2023-2024 annual reports.
+            The distributions and proportions reflect real-world patterns. For production use, run this script with network access
+            to analyze the actual CFPB database.
+        </div>
+
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="value">2,000,000</div>
+                <div class="label">Total Complaints</div>
+            </div>
+            <div class="summary-card">
+                <div class="value">2012-01-01</div>
+                <div class="label">Earliest Complaint</div>
+            </div>
+            <div class="summary-card">
+                <div class="value">2024-11-30</div>
+                <div class="label">Latest Complaint</div>
+            </div>
+            <div class="summary-card">
+                <div class="value">278.5 MB</div>
+                <div class="label">Dataset Size</div>
+            </div>
+            <div class="summary-card">
+                <div class="value">9</div>
+                <div class="label">Product Categories</div>
+            </div>
+            <div class="summary-card">
+                <div class="value">21</div>
+                <div class="label">Unique Companies</div>
+            </div>
+        </div>
+
+        <div class="toc">
+            <h2>Table of Contents</h2>
+            <ul>
+                <li><a href="#executive-summary">Executive Summary</a></li>
+                <li><a href="#products">Products & Sub-products</a></li>
+                <li><a href="#issues">Issues & Sub-issues</a></li>
+                <li><a href="#companies">Companies</a></li>
+                <li><a href="#geography">Geographic Distribution</a></li>
+                <li><a href="#responses">Company Responses</a></li>
+                <li><a href="#submission">Submission Methods</a></li>
+                <li><a href="#temporal">Temporal Analysis</a></li>
+                <li><a href="#cross-analysis">Cross-Dimensional Analysis</a></li>
+                <li><a href="#recommendations">Filtering Recommendations</a></li>
+            </ul>
+        </div>
+
+        <div class="section" id="executive-summary">
+            <h2>Executive Summary</h2>
+            <p>This analysis covers <strong>2,000,000</strong> consumer complaints filed with the
+            Consumer Financial Protection Bureau (CFPB) from <strong>2012-01-01</strong> to
+            <strong>2024-11-30</strong>.</p>
+
+            <div class="insights">
+                <h4>Key Findings</h4>
+                <ul>
+                    <li><strong>Credit reporting, credit repair services, or other personal consumer reports</strong> is the most complained-about product (80.5% of all complaints)</li>
+                    <li><strong>Other Financial Institutions</strong> receives the most complaints</li>
+                    <li><strong>CA</strong> has the highest complaint volume</li>
+                    <li>There are <strong>9</strong> distinct product categories and <strong>31</strong> issue types</li>
+
+                    <li>Companies respond in a timely manner <strong>98.0%</strong> of the time</li>
+
+                </ul>
+            </div>
+        </div>
+
+        <div class="section" id="products">
+            <h2>Products & Sub-products</h2>
+            <h3>Product Categories</h3>
+            <p>All financial products that consumers have filed complaints about:</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 5%">#</th>
+                        <th style="width: 35%">Product</th>
+                        <th style="width: 15%">Count</th>
+                        <th style="width: 10%">Percentage</th>
+                        <th style="width: 35%">Distribution</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td>1</td>
+                        <td>Credit reporting, credit repair services, or other personal consumer reports</td>
+                        <td class="number">1,609,426</td>
+                        <td class="number">80.47%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 80.4713%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>2</td>
+                        <td>Debt collection</td>
+                        <td class="number">110,064</td>
+                        <td class="number">5.50%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 5.5032%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>3</td>
+                        <td>Credit card or prepaid card</td>
+                        <td class="number">90,062</td>
+                        <td class="number">4.50%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 4.5031%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>4</td>
+                        <td>Checking or savings account</td>
+                        <td class="number">81,949</td>
+                        <td class="number">4.10%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 4.097449999999999%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>5</td>
+                        <td>Mortgage</td>
+                        <td class="number">38,229</td>
+                        <td class="number">1.91%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 1.9114499999999999%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>6</td>
+                        <td>Student loan</td>
+                        <td class="number">24,198</td>
+                        <td class="number">1.21%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 1.2099%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>7</td>
+                        <td>Vehicle loan or lease</td>
+                        <td class="number">20,049</td>
+                        <td class="number">1.00%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 1.00245%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>8</td>
+                        <td>Money transfer, virtual currency, or money service</td>
+                        <td class="number">16,060</td>
+                        <td class="number">0.80%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 0.803%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>9</td>
+                        <td>Payday loan, title loan, or personal loan</td>
+                        <td class="number">9,963</td>
+                        <td class="number">0.50%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 0.49815%"></div></div></td>
+                    </tr>
+
+                </tbody>
+            </table>
+
+            <h3>Top 30 Sub-product Categories</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Sub-product</th>
+                        <th>Count</th>
+                        <th>Percentage</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td>1</td>
+                        <td>Other personal consumer report</td>
+                        <td class="number">536,694</td>
+                        <td class="number">26.83%</td>
+                    </tr>
+
+                    <tr>
+                        <td>2</td>
+                        <td>Credit reporting</td>
+                        <td class="number">536,396</td>
+                        <td class="number">26.82%</td>
+                    </tr>
+
+                    <tr>
+                        <td>3</td>
+                        <td>Credit repair services</td>
+                        <td class="number">536,336</td>
+                        <td class="number">26.82%</td>
+                    </tr>
+
+                    <tr>
+                        <td>4</td>
+                        <td>Savings account</td>
+                        <td class="number">20,592</td>
+                        <td class="number">1.03%</td>
+                    </tr>
+
+                    <tr>
+                        <td>5</td>
+                        <td>CD (Certificate of Deposit)</td>
+                        <td class="number">20,564</td>
+                        <td class="number">1.03%</td>
+                    </tr>
+
+                    <tr>
+                        <td>6</td>
+                        <td>Checking account</td>
+                        <td class="number">20,412</td>
+                        <td class="number">1.02%</td>
+                    </tr>
+
+                    <tr>
+                        <td>7</td>
+                        <td>Other banking product or service</td>
+                        <td class="number">20,381</td>
+                        <td class="number">1.02%</td>
+                    </tr>
+
+                    <tr>
+                        <td>8</td>
+                        <td>General-purpose credit card or charge card</td>
+                        <td class="number">18,121</td>
+                        <td class="number">0.91%</td>
+                    </tr>
+
+                    <tr>
+                        <td>9</td>
+                        <td>Government benefit card</td>
+                        <td class="number">18,052</td>
+                        <td class="number">0.90%</td>
+                    </tr>
+
+                    <tr>
+                        <td>10</td>
+                        <td>Payroll card</td>
+                        <td class="number">18,007</td>
+                        <td class="number">0.90%</td>
+                    </tr>
+
+                    <tr>
+                        <td>11</td>
+                        <td>Store credit card</td>
+                        <td class="number">17,947</td>
+                        <td class="number">0.90%</td>
+                    </tr>
+
+                    <tr>
+                        <td>12</td>
+                        <td>General-purpose prepaid card</td>
+                        <td class="number">17,935</td>
+                        <td class="number">0.90%</td>
+                    </tr>
+
+                    <tr>
+                        <td>13</td>
+                        <td>Credit card debt</td>
+                        <td class="number">15,855</td>
+                        <td class="number">0.79%</td>
+                    </tr>
+
+                    <tr>
+                        <td>14</td>
+                        <td>I do not know</td>
+                        <td class="number">15,842</td>
+                        <td class="number">0.79%</td>
+                    </tr>
+
+                    <tr>
+                        <td>15</td>
+                        <td>Auto debt</td>
+                        <td class="number">15,727</td>
+                        <td class="number">0.79%</td>
+                    </tr>
+
+                    <tr>
+                        <td>16</td>
+                        <td>Telecommunications debt</td>
+                        <td class="number">15,702</td>
+                        <td class="number">0.79%</td>
+                    </tr>
+
+                    <tr>
+                        <td>17</td>
+                        <td>Payday loan debt</td>
+                        <td class="number">15,702</td>
+                        <td class="number">0.79%</td>
+                    </tr>
+
+                    <tr>
+                        <td>18</td>
+                        <td>Medical debt</td>
+                        <td class="number">15,632</td>
+                        <td class="number">0.78%</td>
+                    </tr>
+
+                    <tr>
+                        <td>19</td>
+                        <td>Other debt</td>
+                        <td class="number">15,604</td>
+                        <td class="number">0.78%</td>
+                    </tr>
+
+                    <tr>
+                        <td>20</td>
+                        <td>Private student loan</td>
+                        <td class="number">12,205</td>
+                        <td class="number">0.61%</td>
+                    </tr>
+
+                    <tr>
+                        <td>21</td>
+                        <td>Federal student loan servicing</td>
+                        <td class="number">11,993</td>
+                        <td class="number">0.60%</td>
+                    </tr>
+
+                    <tr>
+                        <td>22</td>
+                        <td>Lease</td>
+                        <td class="number">10,051</td>
+                        <td class="number">0.50%</td>
+                    </tr>
+
+                    <tr>
+                        <td>23</td>
+                        <td>Loan</td>
+                        <td class="number">9,998</td>
+                        <td class="number">0.50%</td>
+                    </tr>
+
+                    <tr>
+                        <td>24</td>
+                        <td>Home equity loan or line of credit (HELOC)</td>
+                        <td class="number">7,758</td>
+                        <td class="number">0.39%</td>
+                    </tr>
+
+                    <tr>
+                        <td>25</td>
+                        <td>FHA mortgage</td>
+                        <td class="number">7,689</td>
+                        <td class="number">0.38%</td>
+                    </tr>
+
+                    <tr>
+                        <td>26</td>
+                        <td>Conventional home mortgage</td>
+                        <td class="number">7,684</td>
+                        <td class="number">0.38%</td>
+                    </tr>
+
+                    <tr>
+                        <td>27</td>
+                        <td>Other type of mortgage</td>
+                        <td class="number">7,630</td>
+                        <td class="number">0.38%</td>
+                    </tr>
+
+                    <tr>
+                        <td>28</td>
+                        <td>VA mortgage</td>
+                        <td class="number">7,468</td>
+                        <td class="number">0.37%</td>
+                    </tr>
+
+                    <tr>
+                        <td>29</td>
+                        <td>Virtual currency</td>
+                        <td class="number">4,064</td>
+                        <td class="number">0.20%</td>
+                    </tr>
+
+                    <tr>
+                        <td>30</td>
+                        <td>Mobile or digital wallet</td>
+                        <td class="number">4,032</td>
+                        <td class="number">0.20%</td>
+                    </tr>
+
+                </tbody>
+            </table>
+
+        </div>
+
+        <div class="section" id="issues">
+            <h2>Issues & Sub-issues</h2>
+            <h3>All Issue Categories</h3>
+            <p>The primary issues consumers identify in their complaints:</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 5%">#</th>
+                        <th style="width: 50%">Issue</th>
+                        <th style="width: 15%">Count</th>
+                        <th style="width: 10%">Percentage</th>
+                        <th style="width: 20%">Distribution</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td>1</td>
+                        <td>Incorrect information on your report</td>
+                        <td class="number">804,228</td>
+                        <td class="number">40.21%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 100.0%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>2</td>
+                        <td>Problem with a credit reporting company's investigation into an existing problem</td>
+                        <td class="number">402,886</td>
+                        <td class="number">20.14%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 50.0959926786931%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>3</td>
+                        <td>Improper use of your report</td>
+                        <td class="number">241,325</td>
+                        <td class="number">12.07%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 30.00703780519952%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>4</td>
+                        <td>Unable to get your credit report or credit score</td>
+                        <td class="number">80,526</td>
+                        <td class="number">4.03%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 10.01283218191856%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>5</td>
+                        <td>Problem with a company's investigation into an existing problem</td>
+                        <td class="number">48,211</td>
+                        <td class="number">2.41%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 5.994693047245309%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>6</td>
+                        <td>Attempts to collect debt not owed</td>
+                        <td class="number">38,698</td>
+                        <td class="number">1.93%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 4.811819533764057%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>7</td>
+                        <td>Problem with a credit reporting company's investigation</td>
+                        <td class="number">38,130</td>
+                        <td class="number">1.91%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 4.741192796072755%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>8</td>
+                        <td>Managing an account</td>
+                        <td class="number">32,596</td>
+                        <td class="number">1.63%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 4.0530794749747585%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>9</td>
+                        <td>Credit monitoring or identity theft protection services</td>
+                        <td class="number">32,250</td>
+                        <td class="number">1.61%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 4.010056849550128%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>10</td>
+                        <td>Problem with a purchase shown on your statement</td>
+                        <td class="number">22,399</td>
+                        <td class="number">1.12%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 2.78515545342863%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>11</td>
+                        <td>Written notification about debt</td>
+                        <td class="number">22,087</td>
+                        <td class="number">1.10%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 2.746360484837633%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>12</td>
+                        <td>Problem with a lender or other company charging your account</td>
+                        <td class="number">20,723</td>
+                        <td class="number">1.04%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 2.5767568401000713%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>13</td>
+                        <td>Getting a credit card</td>
+                        <td class="number">18,117</td>
+                        <td class="number">0.91%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 2.252719378086811%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>14</td>
+                        <td>Dealing with your lender or servicer</td>
+                        <td class="number">17,830</td>
+                        <td class="number">0.89%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 2.217032980697016%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>15</td>
+                        <td>Communication tactics</td>
+                        <td class="number">16,436</td>
+                        <td class="number">0.82%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 2.043699050518012%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>16</td>
+                        <td>Fees or interest</td>
+                        <td class="number">16,266</td>
+                        <td class="number">0.81%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 2.0225607663498413%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>17</td>
+                        <td>Managing the loan or lease</td>
+                        <td class="number">13,953</td>
+                        <td class="number">0.70%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 1.7349557588146645%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>18</td>
+                        <td>False statements or representation</td>
+                        <td class="number">13,037</td>
+                        <td class="number">0.65%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 1.621057710002636%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>19</td>
+                        <td>Closing an account</td>
+                        <td class="number">12,349</td>
+                        <td class="number">0.62%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 1.5355098305455668%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>20</td>
+                        <td>Trouble during payment process</td>
+                        <td class="number">11,356</td>
+                        <td class="number">0.57%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 1.4120373824338373%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>21</td>
+                        <td>Took or threatened to take negative or legal action</td>
+                        <td class="number">11,075</td>
+                        <td class="number">0.55%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 1.3770970421323308%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>22</td>
+                        <td>Closing your account</td>
+                        <td class="number">10,770</td>
+                        <td class="number">0.54%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 1.3391724734776704%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>23</td>
+                        <td>Getting a loan or lease</td>
+                        <td class="number">10,587</td>
+                        <td class="number">0.53%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 1.3164177322848745%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>24</td>
+                        <td>Opening an account</td>
+                        <td class="number">9,779</td>
+                        <td class="number">0.49%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 1.215948711062037%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>25</td>
+                        <td>Struggling to pay mortgage</td>
+                        <td class="number">9,740</td>
+                        <td class="number">0.49%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 1.2110993399881624%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>26</td>
+                        <td>Other features, terms, or problems</td>
+                        <td class="number">9,091</td>
+                        <td class="number">0.45%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 1.1304008316049676%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>27</td>
+                        <td>Threatened to contact someone or share information improperly</td>
+                        <td class="number">8,731</td>
+                        <td class="number">0.44%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 1.085637406307664%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>28</td>
+                        <td>Applying for a mortgage or refinancing an existing mortgage</td>
+                        <td class="number">7,624</td>
+                        <td class="number">0.38%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 0.9479898735184549%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>29</td>
+                        <td>Problem with the payoff process</td>
+                        <td class="number">6,999</td>
+                        <td class="number">0.35%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 0.8702755934884137%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>30</td>
+                        <td>Problem caused by your funds being low</td>
+                        <td class="number">6,502</td>
+                        <td class="number">0.33%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 0.808477198008525%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>31</td>
+                        <td>Closing on a mortgage</td>
+                        <td class="number">5,699</td>
+                        <td class="number">0.28%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 0.708629891025928%"></div></div></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section" id="companies">
+            <h2>Companies</h2>
+            <p>Total unique companies: <strong>21</strong></p>
+            <h3>Top 50 Companies by Complaint Volume</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 5%">#</th>
+                        <th style="width: 45%">Company</th>
+                        <th style="width: 15%">Count</th>
+                        <th style="width: 10%">Percentage</th>
+                        <th style="width: 25%">Distribution</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td>1</td>
+                        <td>Other Financial Institutions</td>
+                        <td class="number">423,914</td>
+                        <td class="number">21.20%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 100.0%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>2</td>
+                        <td>EQUIFAX, INC.</td>
+                        <td class="number">400,371</td>
+                        <td class="number">20.02%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 94.44627919813925%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>3</td>
+                        <td>EXPERIAN INFORMATION SOLUTIONS INC.</td>
+                        <td class="number">360,307</td>
+                        <td class="number">18.02%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 84.99530565161801%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>4</td>
+                        <td>TRANSUNION INTERMEDIATE HOLDINGS, INC.</td>
+                        <td class="number">319,321</td>
+                        <td class="number">15.97%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 75.32683515996169%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>5</td>
+                        <td>BANK OF AMERICA, NATIONAL ASSOCIATION</td>
+                        <td class="number">79,492</td>
+                        <td class="number">3.97%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 18.75191666234189%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>6</td>
+                        <td>JPMORGAN CHASE & CO.</td>
+                        <td class="number">70,291</td>
+                        <td class="number">3.51%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 16.581429252159634%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>7</td>
+                        <td>WELLS FARGO & COMPANY</td>
+                        <td class="number">50,247</td>
+                        <td class="number">2.51%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 11.853111716055615%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>8</td>
+                        <td>CITIBANK, N.A.</td>
+                        <td class="number">49,893</td>
+                        <td class="number">2.49%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 11.76960421217511%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>9</td>
+                        <td>CAPITAL ONE FINANCIAL CORPORATION</td>
+                        <td class="number">44,224</td>
+                        <td class="number">2.21%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 10.43230466556896%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>10</td>
+                        <td>Navient Solutions, LLC.</td>
+                        <td class="number">30,121</td>
+                        <td class="number">1.51%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 7.10545063385498%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>11</td>
+                        <td>SYNCHRONY FINANCIAL</td>
+                        <td class="number">23,977</td>
+                        <td class="number">1.20%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 5.6561000580306375%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>12</td>
+                        <td>U.S. BANCORP</td>
+                        <td class="number">20,038</td>
+                        <td class="number">1.00%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 4.726902154682318%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>13</td>
+                        <td>Discover Bank</td>
+                        <td class="number">19,975</td>
+                        <td class="number">1.00%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 4.712040649754432%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>14</td>
+                        <td>TD BANK US HOLDING COMPANY</td>
+                        <td class="number">16,015</td>
+                        <td class="number">0.80%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 3.7778889114301486%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>15</td>
+                        <td>PNC Bank N.A.</td>
+                        <td class="number">16,012</td>
+                        <td class="number">0.80%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 3.7771812207192967%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>16</td>
+                        <td>American Express Company</td>
+                        <td class="number">15,973</td>
+                        <td class="number">0.80%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 3.7679812414782243%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>17</td>
+                        <td>Truist Financial Corporation</td>
+                        <td class="number">13,972</td>
+                        <td class="number">0.70%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 3.295951537340121%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>18</td>
+                        <td>Ally Financial Inc.</td>
+                        <td class="number">13,850</td>
+                        <td class="number">0.69%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 3.2671721150988176%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>19</td>
+                        <td>NATIONSTAR MORTGAGE LLC</td>
+                        <td class="number">12,008</td>
+                        <td class="number">0.60%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 2.8326500186358556%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>20</td>
+                        <td>SoFi Bank, National Association</td>
+                        <td class="number">10,008</td>
+                        <td class="number">0.50%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 2.360856211401369%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>21</td>
+                        <td>Pentagon Federal Credit Union</td>
+                        <td class="number">9,991</td>
+                        <td class="number">0.50%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 2.3568459640398762%"></div></div></td>
+                    </tr>
+
+                </tbody>
+            </table>
+
+            <div class="insights">
+                <h4>Company Concentration Insights</h4>
+                <ul>
+                    <li>Top 10 companies account for <strong>91.4%</strong> of all complaints</li>
+                    <li>Top 50 companies account for <strong>100.0%</strong> of all complaints</li>
+                    <li>The remaining 0 companies account for 0.0% of complaints</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section" id="geography">
+            <h2>Geographic Distribution</h2>
+            <h3>Complaints by State</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>State</th>
+                        <th>Count</th>
+                        <th>Percentage</th>
+                        <th>Distribution</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td>1</td>
+                        <td>CA</td>
+                        <td class="number">267,534</td>
+                        <td class="number">13.38%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 100.0%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>2</td>
+                        <td>TX</td>
+                        <td class="number">190,744</td>
+                        <td class="number">9.54%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 71.29710616220743%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>3</td>
+                        <td>FL</td>
+                        <td class="number">171,836</td>
+                        <td class="number">8.59%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 64.229593247961%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>4</td>
+                        <td>NY</td>
+                        <td class="number">133,854</td>
+                        <td class="number">6.69%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 50.032519231200524%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>5</td>
+                        <td>IL</td>
+                        <td class="number">76,474</td>
+                        <td class="number">3.82%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 28.584778009524026%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>6</td>
+                        <td>GA</td>
+                        <td class="number">76,261</td>
+                        <td class="number">3.81%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 28.505161960722745%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>7</td>
+                        <td>PA</td>
+                        <td class="number">76,205</td>
+                        <td class="number">3.81%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 28.484230041789083%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>8</td>
+                        <td>OH</td>
+                        <td class="number">75,947</td>
+                        <td class="number">3.80%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 28.38779370098754%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>9</td>
+                        <td>MI</td>
+                        <td class="number">57,268</td>
+                        <td class="number">2.86%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 21.40587738380916%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>10</td>
+                        <td>NC</td>
+                        <td class="number">57,223</td>
+                        <td class="number">2.86%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 21.38905709180889%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>11</td>
+                        <td>VA</td>
+                        <td class="number">57,159</td>
+                        <td class="number">2.86%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 21.365134898741843%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>12</td>
+                        <td>NJ</td>
+                        <td class="number">57,030</td>
+                        <td class="number">2.85%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 21.31691672834107%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>13</td>
+                        <td>MD</td>
+                        <td class="number">38,692</td>
+                        <td class="number">1.93%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 14.462460846098066%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>14</td>
+                        <td>IN</td>
+                        <td class="number">38,300</td>
+                        <td class="number">1.92%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 14.315937413562388%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>15</td>
+                        <td>MO</td>
+                        <td class="number">38,229</td>
+                        <td class="number">1.91%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 14.28939873062863%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>16</td>
+                        <td>TN</td>
+                        <td class="number">38,201</td>
+                        <td class="number">1.91%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 14.278932771161795%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>17</td>
+                        <td>MA</td>
+                        <td class="number">38,152</td>
+                        <td class="number">1.91%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 14.260617342094836%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>18</td>
+                        <td>AZ</td>
+                        <td class="number">38,128</td>
+                        <td class="number">1.91%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 14.251646519694694%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>19</td>
+                        <td>WA</td>
+                        <td class="number">37,987</td>
+                        <td class="number">1.90%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 14.19894293809385%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>20</td>
+                        <td>MN</td>
+                        <td class="number">19,371</td>
+                        <td class="number">0.97%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 7.24057502971585%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>21</td>
+                        <td>MS</td>
+                        <td class="number">19,299</td>
+                        <td class="number">0.96%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 7.2136625625154185%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>22</td>
+                        <td>NV</td>
+                        <td class="number">19,280</td>
+                        <td class="number">0.96%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 7.206560661448639%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>23</td>
+                        <td>UT</td>
+                        <td class="number">19,271</td>
+                        <td class="number">0.96%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 7.203196603048584%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>24</td>
+                        <td>AL</td>
+                        <td class="number">19,258</td>
+                        <td class="number">0.96%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 7.19833740758184%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>25</td>
+                        <td>OK</td>
+                        <td class="number">19,255</td>
+                        <td class="number">0.96%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 7.197216054781822%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>26</td>
+                        <td>IA</td>
+                        <td class="number">19,206</td>
+                        <td class="number">0.96%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 7.178900625714863%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>27</td>
+                        <td>WI</td>
+                        <td class="number">19,198</td>
+                        <td class="number">0.96%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 7.175910351581481%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>28</td>
+                        <td>OR</td>
+                        <td class="number">19,195</td>
+                        <td class="number">0.96%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 7.174788998781463%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>29</td>
+                        <td>NM</td>
+                        <td class="number">19,172</td>
+                        <td class="number">0.96%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 7.166191960647993%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>30</td>
+                        <td>KY</td>
+                        <td class="number">19,068</td>
+                        <td class="number">0.95%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 7.127318396914037%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>31</td>
+                        <td>AR</td>
+                        <td class="number">19,014</td>
+                        <td class="number">0.95%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 7.107134046513715%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>32</td>
+                        <td>KS</td>
+                        <td class="number">18,965</td>
+                        <td class="number">0.95%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 7.088818617446754%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>33</td>
+                        <td>CO</td>
+                        <td class="number">18,959</td>
+                        <td class="number">0.95%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 7.086575911846718%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>34</td>
+                        <td>SC</td>
+                        <td class="number">18,933</td>
+                        <td class="number">0.95%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 7.076857520913229%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>35</td>
+                        <td>CT</td>
+                        <td class="number">18,917</td>
+                        <td class="number">0.95%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 7.070876972646467%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>36</td>
+                        <td>LA</td>
+                        <td class="number">18,852</td>
+                        <td class="number">0.94%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 7.046580995312746%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>37</td>
+                        <td>ID</td>
+                        <td class="number">9,744</td>
+                        <td class="number">0.49%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 3.642153894458274%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>38</td>
+                        <td>NE</td>
+                        <td class="number">9,693</td>
+                        <td class="number">0.48%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 3.6230908968579696%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>39</td>
+                        <td>DC</td>
+                        <td class="number">9,687</td>
+                        <td class="number">0.48%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 3.620848191257934%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>40</td>
+                        <td>NH</td>
+                        <td class="number">9,655</td>
+                        <td class="number">0.48%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 3.608887094724409%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>41</td>
+                        <td>WV</td>
+                        <td class="number">9,613</td>
+                        <td class="number">0.48%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 3.5931881555241576%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>42</td>
+                        <td>ME</td>
+                        <td class="number">9,593</td>
+                        <td class="number">0.48%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 3.585712470190705%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>43</td>
+                        <td>HI</td>
+                        <td class="number">9,511</td>
+                        <td class="number">0.48%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 3.555062160323548%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>44</td>
+                        <td>RI</td>
+                        <td class="number">9,445</td>
+                        <td class="number">0.47%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 3.5303923987231527%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>45</td>
+                        <td>SD</td>
+                        <td class="number">5,927</td>
+                        <td class="number">0.30%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 2.2154193485687803%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>46</td>
+                        <td>MT</td>
+                        <td class="number">5,686</td>
+                        <td class="number">0.28%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 2.125337340300672%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>47</td>
+                        <td>DE</td>
+                        <td class="number">5,672</td>
+                        <td class="number">0.28%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 2.120104360567255%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>48</td>
+                        <td>AK</td>
+                        <td class="number">3,895</td>
+                        <td class="number">0.19%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 1.455889718689961%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>49</td>
+                        <td>VT</td>
+                        <td class="number">3,847</td>
+                        <td class="number">0.19%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 1.437948073889674%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>50</td>
+                        <td>WY</td>
+                        <td class="number">3,821</td>
+                        <td class="number">0.19%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 1.428229682956185%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>51</td>
+                        <td>ND</td>
+                        <td class="number">3,774</td>
+                        <td class="number">0.19%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 1.4106618224225704%"></div></div></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section" id="responses">
+            <h2>Company Responses</h2>
+
+            <h3>Response Types</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Response Type</th>
+                        <th>Count</th>
+                        <th>Percentage</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td>Closed with explanation</td>
+                        <td class="number">1,300,261</td>
+                        <td class="number">65.01%</td>
+                    </tr>
+
+                    <tr>
+                        <td>Closed with non-monetary relief</td>
+                        <td class="number">240,611</td>
+                        <td class="number">12.03%</td>
+                    </tr>
+
+                    <tr>
+                        <td>Closed with monetary relief</td>
+                        <td class="number">159,632</td>
+                        <td class="number">7.98%</td>
+                    </tr>
+
+                    <tr>
+                        <td>Closed without relief</td>
+                        <td class="number">139,920</td>
+                        <td class="number">7.00%</td>
+                    </tr>
+
+                    <tr>
+                        <td>Closed</td>
+                        <td class="number">99,802</td>
+                        <td class="number">4.99%</td>
+                    </tr>
+
+                    <tr>
+                        <td>In progress</td>
+                        <td class="number">39,867</td>
+                        <td class="number">1.99%</td>
+                    </tr>
+
+                    <tr>
+                        <td>Untimely response</td>
+                        <td class="number">19,907</td>
+                        <td class="number">1.00%</td>
+                    </tr>
+
+                </tbody>
+            </table>
+
+            <h3>Timely Response Rate</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timely Response?</th>
+                        <th>Count</th>
+                        <th>Percentage</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td>Yes</td>
+                        <td class="number">1,960,014</td>
+                        <td class="number">98.00%</td>
+                    </tr>
+
+                    <tr>
+                        <td>No</td>
+                        <td class="number">39,986</td>
+                        <td class="number">2.00%</td>
+                    </tr>
+
+                </tbody>
+            </table>
+
+            <h3>Consumer Dispute Rate</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Consumer Disputed?</th>
+                        <th>Count</th>
+                        <th>Percentage</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td>No</td>
+                        <td class="number">1,199,447</td>
+                        <td class="number">59.97%</td>
+                    </tr>
+
+                    <tr>
+                        <td>N/A</td>
+                        <td class="number">500,477</td>
+                        <td class="number">25.02%</td>
+                    </tr>
+
+                    <tr>
+                        <td>Yes</td>
+                        <td class="number">300,076</td>
+                        <td class="number">15.00%</td>
+                    </tr>
+
+                </tbody>
+            </table>
+
+        </div>
+
+        <div class="section" id="submission">
+            <h2>Submission Methods</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Count</th>
+                        <th>Percentage</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td>Web</td>
+                        <td class="number">1,699,580</td>
+                        <td class="number">84.98%</td>
+                    </tr>
+
+                    <tr>
+                        <td>Referral</td>
+                        <td class="number">159,813</td>
+                        <td class="number">7.99%</td>
+                    </tr>
+
+                    <tr>
+                        <td>Phone</td>
+                        <td class="number">80,085</td>
+                        <td class="number">4.00%</td>
+                    </tr>
+
+                    <tr>
+                        <td>Postal mail</td>
+                        <td class="number">40,240</td>
+                        <td class="number">2.01%</td>
+                    </tr>
+
+                    <tr>
+                        <td>Fax</td>
+                        <td class="number">20,282</td>
+                        <td class="number">1.01%</td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section" id="temporal">
+            <h2>Temporal Analysis</h2>
+
+            <h3>Complaints by Year</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Year</th>
+                        <th>Count</th>
+                        <th>Percentage</th>
+                        <th>Distribution</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td>2012</td>
+                        <td class="number">52,481</td>
+                        <td class="number">2.62%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 17.173326876006232%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>2013</td>
+                        <td class="number">60,993</td>
+                        <td class="number">3.05%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 19.958703647953506%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>2014</td>
+                        <td class="number">71,481</td>
+                        <td class="number">3.57%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 23.390685741959974%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>2015</td>
+                        <td class="number">82,766</td>
+                        <td class="number">4.14%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 27.0834696789225%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>2016</td>
+                        <td class="number">97,470</td>
+                        <td class="number">4.87%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 31.8950509823427%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>2017</td>
+                        <td class="number">114,050</td>
+                        <td class="number">5.70%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 37.32051466642233%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>2018</td>
+                        <td class="number">132,891</td>
+                        <td class="number">6.64%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 43.485844055550466%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>2019</td>
+                        <td class="number">155,515</td>
+                        <td class="number">7.78%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 50.88908231783138%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>2020</td>
+                        <td class="number">181,347</td>
+                        <td class="number">9.07%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 59.34207254021649%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>2021</td>
+                        <td class="number">211,370</td>
+                        <td class="number">10.57%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 69.1664812366654%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>2022</td>
+                        <td class="number">246,546</td>
+                        <td class="number">12.33%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 80.67710310344376%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>2023</td>
+                        <td class="number">287,494</td>
+                        <td class="number">14.37%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 94.07649314781608%"></div></div></td>
+                    </tr>
+
+                    <tr>
+                        <td>2024</td>
+                        <td class="number">305,596</td>
+                        <td class="number">15.28%</td>
+                        <td><div class="progress-bar"><div class="progress-fill" style="width: 100.0%"></div></div></td>
+                    </tr>
+
+                </tbody>
+            </table>
+
+            <h3>Average Complaints by Month</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Average Count</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td>January</td>
+                        <td class="number">12,330</td>
+                    </tr>
+
+                    <tr>
+                        <td>February</td>
+                        <td class="number">11,412</td>
+                    </tr>
+
+                    <tr>
+                        <td>March</td>
+                        <td class="number">12,658</td>
+                    </tr>
+
+                    <tr>
+                        <td>April</td>
+                        <td class="number">12,370</td>
+                    </tr>
+
+                    <tr>
+                        <td>May</td>
+                        <td class="number">13,001</td>
+                    </tr>
+
+                    <tr>
+                        <td>June</td>
+                        <td class="number">12,675</td>
+                    </tr>
+
+                    <tr>
+                        <td>July</td>
+                        <td class="number">13,337</td>
+                    </tr>
+
+                    <tr>
+                        <td>August</td>
+                        <td class="number">13,439</td>
+                    </tr>
+
+                    <tr>
+                        <td>September</td>
+                        <td class="number">13,232</td>
+                    </tr>
+
+                    <tr>
+                        <td>October</td>
+                        <td class="number">13,924</td>
+                    </tr>
+
+                    <tr>
+                        <td>November</td>
+                        <td class="number">13,632</td>
+                    </tr>
+
+                    <tr>
+                        <td>December</td>
+                        <td class="number">11,837</td>
+                    </tr>
+
+                </tbody>
+            </table>
+
+        </div>
+
+        <div class="section" id="cross-analysis">
+            <h2>Cross-Dimensional Analysis</h2>
+
+            <h3>Top Issues by Product</h3>
+            <div class="cross-tab">
+
+                <h4>Credit reporting, credit repair services, or other personal consumer reports</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Issue</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <tr>
+                            <td>Incorrect information on your report</td>
+                            <td class="number">804,228</td>
+                        </tr>
+
+                        <tr>
+                            <td>Problem with a credit reporting company's investigation into an existing problem</td>
+                            <td class="number">402,886</td>
+                        </tr>
+
+                        <tr>
+                            <td>Improper use of your report</td>
+                            <td class="number">241,325</td>
+                        </tr>
+
+                        <tr>
+                            <td>Unable to get your credit report or credit score</td>
+                            <td class="number">80,526</td>
+                        </tr>
+
+                        <tr>
+                            <td>Problem with a company's investigation into an existing problem</td>
+                            <td class="number">48,211</td>
+                        </tr>
+
+                    </tbody>
+                </table>
+
+                <h4>Debt collection</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Issue</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <tr>
+                            <td>Attempts to collect debt not owed</td>
+                            <td class="number">38,698</td>
+                        </tr>
+
+                        <tr>
+                            <td>Written notification about debt</td>
+                            <td class="number">22,087</td>
+                        </tr>
+
+                        <tr>
+                            <td>Communication tactics</td>
+                            <td class="number">16,436</td>
+                        </tr>
+
+                        <tr>
+                            <td>False statements or representation</td>
+                            <td class="number">13,037</td>
+                        </tr>
+
+                        <tr>
+                            <td>Took or threatened to take negative or legal action</td>
+                            <td class="number">11,075</td>
+                        </tr>
+
+                    </tbody>
+                </table>
+
+                <h4>Credit card or prepaid card</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Issue</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <tr>
+                            <td>Problem with a purchase shown on your statement</td>
+                            <td class="number">22,399</td>
+                        </tr>
+
+                        <tr>
+                            <td>Getting a credit card</td>
+                            <td class="number">18,117</td>
+                        </tr>
+
+                        <tr>
+                            <td>Fees or interest</td>
+                            <td class="number">16,266</td>
+                        </tr>
+
+                        <tr>
+                            <td>Problem with a credit reporting company's investigation</td>
+                            <td class="number">13,419</td>
+                        </tr>
+
+                        <tr>
+                            <td>Closing your account</td>
+                            <td class="number">10,770</td>
+                        </tr>
+
+                    </tbody>
+                </table>
+
+                <h4>Checking or savings account</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Issue</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <tr>
+                            <td>Managing an account</td>
+                            <td class="number">32,596</td>
+                        </tr>
+
+                        <tr>
+                            <td>Problem with a lender or other company charging your account</td>
+                            <td class="number">20,723</td>
+                        </tr>
+
+                        <tr>
+                            <td>Closing an account</td>
+                            <td class="number">12,349</td>
+                        </tr>
+
+                        <tr>
+                            <td>Opening an account</td>
+                            <td class="number">9,779</td>
+                        </tr>
+
+                        <tr>
+                            <td>Problem caused by your funds being low</td>
+                            <td class="number">6,502</td>
+                        </tr>
+
+                    </tbody>
+                </table>
+
+                <h4>Mortgage</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Issue</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <tr>
+                            <td>Trouble during payment process</td>
+                            <td class="number">11,356</td>
+                        </tr>
+
+                        <tr>
+                            <td>Struggling to pay mortgage</td>
+                            <td class="number">9,740</td>
+                        </tr>
+
+                        <tr>
+                            <td>Applying for a mortgage or refinancing an existing mortgage</td>
+                            <td class="number">7,624</td>
+                        </tr>
+
+                        <tr>
+                            <td>Closing on a mortgage</td>
+                            <td class="number">5,699</td>
+                        </tr>
+
+                        <tr>
+                            <td>Problem with a credit reporting company's investigation</td>
+                            <td class="number">3,810</td>
+                        </tr>
+
+                    </tbody>
+                </table>
+
+                <h4>Student loan</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Issue</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <tr>
+                            <td>Problem with a credit reporting company's investigation</td>
+                            <td class="number">7,093</td>
+                        </tr>
+
+                        <tr>
+                            <td>Dealing with your lender or servicer</td>
+                            <td class="number">6,150</td>
+                        </tr>
+
+                        <tr>
+                            <td>Managing the loan or lease</td>
+                            <td class="number">4,812</td>
+                        </tr>
+
+                        <tr>
+                            <td>Getting a loan or lease</td>
+                            <td class="number">3,671</td>
+                        </tr>
+
+                        <tr>
+                            <td>Problem with the payoff process</td>
+                            <td class="number">2,472</td>
+                        </tr>
+
+                    </tbody>
+                </table>
+
+                <h4>Vehicle loan or lease</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Issue</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <tr>
+                            <td>Problem with a credit reporting company's investigation</td>
+                            <td class="number">5,971</td>
+                        </tr>
+
+                        <tr>
+                            <td>Dealing with your lender or servicer</td>
+                            <td class="number">5,014</td>
+                        </tr>
+
+                        <tr>
+                            <td>Managing the loan or lease</td>
+                            <td class="number">3,996</td>
+                        </tr>
+
+                        <tr>
+                            <td>Getting a loan or lease</td>
+                            <td class="number">3,063</td>
+                        </tr>
+
+                        <tr>
+                            <td>Problem with the payoff process</td>
+                            <td class="number">2,005</td>
+                        </tr>
+
+                    </tbody>
+                </table>
+
+                <h4>Money transfer, virtual currency, or money service</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Issue</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <tr>
+                            <td>Problem with a credit reporting company's investigation</td>
+                            <td class="number">4,797</td>
+                        </tr>
+
+                        <tr>
+                            <td>Dealing with your lender or servicer</td>
+                            <td class="number">4,149</td>
+                        </tr>
+
+                        <tr>
+                            <td>Managing the loan or lease</td>
+                            <td class="number">3,186</td>
+                        </tr>
+
+                        <tr>
+                            <td>Getting a loan or lease</td>
+                            <td class="number">2,369</td>
+                        </tr>
+
+                        <tr>
+                            <td>Problem with the payoff process</td>
+                            <td class="number">1,559</td>
+                        </tr>
+
+                    </tbody>
+                </table>
+
+                <h4>Payday loan, title loan, or personal loan</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Issue</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <tr>
+                            <td>Problem with a credit reporting company's investigation</td>
+                            <td class="number">3,040</td>
+                        </tr>
+
+                        <tr>
+                            <td>Dealing with your lender or servicer</td>
+                            <td class="number">2,517</td>
+                        </tr>
+
+                        <tr>
+                            <td>Managing the loan or lease</td>
+                            <td class="number">1,959</td>
+                        </tr>
+
+                        <tr>
+                            <td>Getting a loan or lease</td>
+                            <td class="number">1,484</td>
+                        </tr>
+
+                        <tr>
+                            <td>Problem with the payoff process</td>
+                            <td class="number">963</td>
+                        </tr>
+
+                    </tbody>
+                </table>
+
+            </div>
+
+            <h3>Product Distribution by Top States</h3>
+            <div class="cross-tab">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+<th>CA</th><th>TX</th><th>FL</th><th>NY</th><th>IL</th><th>GA</th><th>PA</th><th>OH</th><th>MI</th><th>NC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+<tr><td>Credit reporting, credit repair services, or other personal consumer reports</td><td class='number'>215,218</td><td class='number'>153,537</td><td class='number'>138,137</td><td class='number'>107,537</td><td class='number'>61,638</td><td class='number'>61,430</td><td class='number'>61,138</td><td class='number'>61,102</td><td class='number'>46,007</td><td class='number'>46,236</td></tr><tr><td>Debt collection</td><td class='number'>14,634</td><td class='number'>10,526</td><td class='number'>9,440</td><td class='number'>7,440</td><td class='number'>4,145</td><td class='number'>4,151</td><td class='number'>4,293</td><td class='number'>4,179</td><td class='number'>3,127</td><td class='number'>3,151</td></tr><tr><td>Credit card or prepaid card</td><td class='number'>11,986</td><td class='number'>8,587</td><td class='number'>7,771</td><td class='number'>5,982</td><td class='number'>3,407</td><td class='number'>3,443</td><td class='number'>3,524</td><td class='number'>3,527</td><td class='number'>2,585</td><td class='number'>2,548</td></tr><tr><td>Checking or savings account</td><td class='number'>11,007</td><td class='number'>7,813</td><td class='number'>7,104</td><td class='number'>5,542</td><td class='number'>3,139</td><td class='number'>3,148</td><td class='number'>3,096</td><td class='number'>3,078</td><td class='number'>2,410</td><td class='number'>2,280</td></tr><tr><td>Mortgage</td><td class='number'>5,190</td><td class='number'>3,693</td><td class='number'>3,354</td><td class='number'>2,566</td><td class='number'>1,409</td><td class='number'>1,402</td><td class='number'>1,408</td><td class='number'>1,445</td><td class='number'>1,095</td><td class='number'>1,064</td></tr><tr><td>Student loan</td><td class='number'>3,297</td><td class='number'>2,284</td><td class='number'>2,059</td><td class='number'>1,604</td><td class='number'>1,010</td><td class='number'>901</td><td class='number'>938</td><td class='number'>919</td><td class='number'>645</td><td class='number'>671</td></tr><tr><td>Vehicle loan or lease</td><td class='number'>2,684</td><td class='number'>1,869</td><td class='number'>1,707</td><td class='number'>1,341</td><td class='number'>716</td><td class='number'>770</td><td class='number'>776</td><td class='number'>767</td><td class='number'>624</td><td class='number'>555</td></tr><tr><td>Money transfer, virtual currency, or money service</td><td class='number'>2,132</td><td class='number'>1,539</td><td class='number'>1,368</td><td class='number'>1,139</td><td class='number'>631</td><td class='number'>632</td><td class='number'>651</td><td class='number'>585</td><td class='number'>480</td><td class='number'>453</td></tr><tr><td>Payday loan, title loan, or personal loan</td><td class='number'>1,386</td><td class='number'>896</td><td class='number'>896</td><td class='number'>703</td><td class='number'>379</td><td class='number'>384</td><td class='number'>381</td><td class='number'>345</td><td class='number'>295</td><td class='number'>265</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+        <div class="section" id="tags">
+            <h2>Consumer Tags</h2>
+            <p>Special designations for consumers:</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tag</th>
+                        <th>Count</th>
+                        <th>Percentage</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td>nan</td>
+                        <td class="number">1,700,089</td>
+                        <td class="number">85.00%</td>
+                    </tr>
+
+                    <tr>
+                        <td>Servicemember</td>
+                        <td class="number">159,775</td>
+                        <td class="number">7.99%</td>
+                    </tr>
+
+                    <tr>
+                        <td>Older American</td>
+                        <td class="number">100,065</td>
+                        <td class="number">5.00%</td>
+                    </tr>
+
+                    <tr>
+                        <td>Older American, Servicemember</td>
+                        <td class="number">40,071</td>
+                        <td class="number">2.00%</td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section" id="recommendations">
+            <h2>Filtering Recommendations</h2>
+            <p>Based on this analysis, here are recommendations for reducing the dataset size while maintaining analytical value:</p>
+
+            <div class="recommendation">
+                <h4>Recommendation 1: Filter by Date Range</h4>
+
+                <p>The most recent 3 years (2022, 2023, 2024) contain <strong>839,636</strong> complaints
+                (42.0% of total). Consider filtering to recent data for current trend analysis.</p>
+
+            </div>
+
+            <div class="recommendation">
+                <h4>Recommendation 2: Focus on Top Products</h4>
+
+                <p>The top 5 products account for <strong>96.5%</strong> of all complaints:</p>
+                <ul>
+<li>Credit reporting, credit repair services, or other personal consumer reports: 1,609,426 complaints</li><li>Debt collection: 110,064 complaints</li><li>Credit card or prepaid card: 90,062 complaints</li><li>Checking or savings account: 81,949 complaints</li><li>Mortgage: 38,229 complaints</li>
+                </ul>
+                <p>Consider filtering to specific products based on your analysis needs.</p>
+            </div>
+
+            <div class="recommendation">
+                <h4>Recommendation 3: Limit to Top Companies</h4>
+
+                <p>The top 50 companies represent <strong>100.0%</strong> of complaints.
+                If analyzing company-specific patterns, filtering to these companies would significantly reduce data volume.</p>
+            </div>
+
+            <div class="recommendation">
+                <h4>Recommendation 4: Geographic Focus</h4>
+
+                <p>The top 10 states account for <strong>59.2%</strong> of complaints.
+                For regional analysis, consider focusing on specific states.</p>
+            </div>
+
+            <div class="recommendation">
+                <h4>Recommendation 5: Exclude Narrative Text</h4>
+                <p>The 'Consumer complaint narrative' column contains lengthy text and significantly increases memory usage.
+                If narrative analysis is not required, excluding this column can reduce dataset size by ~50%.</p>
+            </div>
+
+            <div class="recommendation">
+                <h4>Sample Filter Strategies</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Strategy</th>
+                            <th>Estimated Rows</th>
+                            <th>% of Original</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <tr>
+                            <td>Last 1 year</td>
+                            <td class="number">305,596</td>
+                            <td class="number">15.3%</td>
+                        </tr>
+
+                        <tr>
+                            <td>Last 3 years</td>
+                            <td class="number">839,636</td>
+                            <td class="number">42.0%</td>
+                        </tr>
+
+                        <tr>
+                            <td>Top 3 products only</td>
+                            <td class="number">1,809,552</td>
+                            <td class="number">90.5%</td>
+                        </tr>
+
+                        <tr>
+                            <td>Top 10 states only</td>
+                            <td class="number">1,183,346</td>
+                            <td class="number">59.2%</td>
+                        </tr>
+
+                        <tr>
+                            <td>Credit reporting only</td>
+                            <td class="number">1,609,426</td>
+                            <td class="number">80.5%</td>
+                        </tr>
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <footer>
+            <p>CFPB Consumer Complaints Analysis Report</p>
+            <p>Generated on 2025-12-13 07:31:17 | Data source: Sample Data (based on CFPB statistics)</p>
+            <p>Total records analyzed: 2,000,000</p>
+        </footer>
+    </div>
+</body>
+</html>
