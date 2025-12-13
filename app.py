@@ -88,6 +88,15 @@ def main():
     # Sidebar - Data Loading Controls
     st.sidebar.header("⚙️ Data Controls")
 
+    # Initialize session state for loading
+    if 'loading' not in st.session_state:
+        st.session_state.loading = False
+
+    # Callback to manage loading state
+    def handle_load_data_click():
+        st.session_state.loading = True
+        st.cache_data.clear()
+
     # Date range
     default_date = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
     date_min = st.sidebar.date_input(
@@ -120,22 +129,31 @@ def main():
     )
 
     # Load data button
-    if st.sidebar.button("🔄 Load Data", type="primary"):
-        st.cache_data.clear()
+    button_label = "Loading..." if st.session_state.loading else "🔄 Load Data"
+    st.sidebar.button(
+        button_label,
+        type="primary",
+        on_click=handle_load_data_click,
+        disabled=st.session_state.loading,
+        help="Click to fetch the latest data. The button is disabled while data is loading."
+    )
 
-    # Load data
-    with st.spinner("Loading CFPB complaint data..."):
-        try:
+    # Load data and manage loading state
+    try:
+        with st.spinner("Loading CFPB complaint data..."):
             df = load_data(sample_size, date_min, product_filter, state_filter)
 
             if len(df) == 0:
                 st.error("No data found with the selected filters. Try adjusting your criteria.")
-                return
+                st.stop()  # Use st.stop() for a cleaner exit
 
-        except Exception as e:
-            st.error(f"Error loading data: {e}")
-            st.info("The CFPB API may be temporarily unavailable. Please try again later.")
-            return
+    except Exception as e:
+        st.error(f"Error loading data: {e}")
+        st.info("The CFPB API may be temporarily unavailable. Please try again later.")
+        st.stop()  # Use st.stop() for a cleaner exit
+    finally:
+        # Reset loading state at the end of every run
+        st.session_state.loading = False
 
     # Data Summary
     st.sidebar.markdown("---")
