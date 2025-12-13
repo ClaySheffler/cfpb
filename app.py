@@ -35,33 +35,8 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
-st.markdown("""
-<style>
-    .main-header {
-        font-size: 2.5rem;
-        font-weight: bold;
-        color: #1f77b4;
-        margin-bottom: 1rem;
-    }
-    .stat-box {
-        background-color: #f0f2f6;
-        padding: 1.5rem;
-        border-radius: 0.5rem;
-        border-left: 4px solid #1f77b4;
-    }
-    .metric-value {
-        font-size: 2rem;
-        font-weight: bold;
-        color: #1f77b4;
-    }
-    .metric-label {
-        font-size: 0.9rem;
-        color: #666;
-        text-transform: uppercase;
-    }
-</style>
-""", unsafe_allow_html=True)
+# Custom CSS block removed for security reasons.
+# The app now uses st.title and st.metric for display, which are safer alternatives.
 
 
 @st.cache_data(ttl=3600)
@@ -77,8 +52,7 @@ def load_data(size, date_min, product_filter, state_filter):
 
 def main():
     # Header
-    st.markdown('<div class="main-header">📊 CFPB Consumer Complaints Explorer</div>',
-                unsafe_allow_html=True)
+    st.title("📊 CFPB Consumer Complaints Explorer")
 
     st.markdown("""
     Explore and analyze consumer complaints submitted to the **Consumer Financial Protection Bureau (CFPB)**.
@@ -163,34 +137,22 @@ def main():
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
-            st.markdown('<div class="stat-box">', unsafe_allow_html=True)
-            st.markdown(f'<div class="metric-value">{len(df):,}</div>', unsafe_allow_html=True)
-            st.markdown('<div class="metric-label">Total Complaints</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.metric("Total Complaints", f"{len(df):,}")
 
         with col2:
             if 'Product' in df.columns:
                 unique_products = df['Product'].nunique()
-                st.markdown('<div class="stat-box">', unsafe_allow_html=True)
-                st.markdown(f'<div class="metric-value">{unique_products}</div>', unsafe_allow_html=True)
-                st.markdown('<div class="metric-label">Product Types</div>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+                st.metric("Product Types", f"{unique_products}")
 
         with col3:
             if 'Company' in df.columns:
                 unique_companies = df['Company'].nunique()
-                st.markdown('<div class="stat-box">', unsafe_allow_html=True)
-                st.markdown(f'<div class="metric-value">{unique_companies}</div>', unsafe_allow_html=True)
-                st.markdown('<div class="metric-label">Companies</div>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+                st.metric("Companies", f"{unique_companies}")
 
         with col4:
             if 'Timely response?' in df.columns:
                 timely_pct = (df['Timely response?'] == 'Yes').sum() / len(df) * 100
-                st.markdown('<div class="stat-box">', unsafe_allow_html=True)
-                st.markdown(f'<div class="metric-value">{timely_pct:.1f}%</div>', unsafe_allow_html=True)
-                st.markdown('<div class="metric-label">Timely Response</div>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+                st.metric("Timely Response", f"{timely_pct:.1f}%")
 
         st.markdown("---")
 
