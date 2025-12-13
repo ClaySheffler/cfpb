@@ -58,3 +58,6 @@ Thumbs.db
 .Ruserdata
 *.Rproj
 rsconnect/
+
+# Log files
+*.log
