@@ -48,6 +48,10 @@ Thumbs.db
 # data/*.csv
 # *.zip
 
+# Parquet cache files (auto-generated for performance)
+*.parquet
+complaints_cache.parquet
+
 # Streamlit
 .streamlit/secrets.toml
 

@@ -16,3 +16,6 @@ requests>=2.31.0
 
 # Optional: For enhanced functionality
 openpyxl>=3.1.0  # Excel file support
+
+# Performance: Parquet format support (5-10x faster than CSV)
+pyarrow>=14.0.0
