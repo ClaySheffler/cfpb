@@ -329,7 +329,10 @@ def analyze_product_issues(df: pd.DataFrame, product: str, top_n: int = 10) -> p
 
 def compare_products(df: pd.DataFrame, products: list, metric: str = 'timely_response') -> pd.DataFrame:
     """
-    Compare metrics across multiple products.
+    Compare metrics across multiple products efficiently.
+
+    This optimized version uses a single groupby operation to calculate
+    metrics, avoiding inefficient per-product filtering.
 
     Args:
         df: DataFrame containing CFPB complaints
@@ -347,27 +350,52 @@ def compare_products(df: pd.DataFrame, products: list, metric: str = 'timely_res
         ... )
         >>> print(comparison)
     """
-    results = []
+    # --- Bolt Optimization ---
+    # The original function filtered the DataFrame inside a loop for each product,
+    # which is inefficient (N+1 query problem).
+    # This optimized version filters once, then uses a single groupby operation
+    # to calculate all metrics simultaneously. This is significantly faster,
+    # especially with a large number of products.
+    #
+    # Impact:
+    # - Performance: O(N) instead of O(N * M) where M is number of products.
+    # - Reduces redundant computations.
 
-    for product in products:
-        product_df = df[df['Product'] == product]
+    # 1. Filter the DataFrame to only the products of interest.
+    filtered_df = df[df['Product'].isin(products)].copy()
 
-        if len(product_df) == 0:
-            continue
+    if filtered_df.empty:
+        return pd.DataFrame()
 
-        row = {'Product': product, 'Count': len(product_df)}
+    # 2. Define aggregations based on available columns.
+    aggs = {}
+    if 'Timely response?' in filtered_df.columns:
+        # Convert 'Yes'/'No' to boolean for easy summation
+        filtered_df['is_timely'] = filtered_df['Timely response?'] == 'Yes'
+        aggs['timely_sum'] = pd.NamedAgg(column='is_timely', aggfunc='sum')
 
-        if metric == 'timely_response' and 'Timely response?' in df.columns:
-            timely = (product_df['Timely response?'] == 'Yes').sum()
-            row['Timely Response Rate (%)'] = (timely / len(product_df) * 100).round(2)
+    if 'Consumer disputed?' in filtered_df.columns:
+        # Convert 'Yes'/'No' to boolean for easy summation
+        filtered_df['is_disputed'] = filtered_df['Consumer disputed?'] == 'Yes'
+        aggs['disputed_sum'] = pd.NamedAgg(column='is_disputed', aggfunc='sum')
 
-        if metric == 'dispute_rate' and 'Consumer disputed?' in df.columns:
-            disputed = (product_df['Consumer disputed?'] == 'Yes').sum()
-            row['Dispute Rate (%)'] = (disputed / len(product_df) * 100).round(2)
+    # Always count the number of complaints
+    aggs['Count'] = pd.NamedAgg(column='Product', aggfunc='size')
 
-        results.append(row)
+    # 3. Perform a single groupby and aggregation.
+    result = filtered_df.groupby('Product').agg(**aggs).reset_index()
 
-    return pd.DataFrame(results)
+    # 4. Calculate rates and select columns based on the 'metric' parameter.
+    final_cols = ['Product', 'Count']
+    if metric == 'timely_response' and 'timely_sum' in result.columns:
+        result['Timely Response Rate (%)'] = (result['timely_sum'] / result['Count'] * 100).round(2)
+        final_cols.append('Timely Response Rate (%)')
+
+    if metric == 'dispute_rate' and 'disputed_sum' in result.columns:
+        result['Dispute Rate (%)'] = (result['disputed_sum'] / result['Count'] * 100).round(2)
+        final_cols.append('Dispute Rate (%)')
+
+    return result[final_cols]
 
 
 # =============================================================================
@@ -421,6 +449,15 @@ if __name__ == "__main__":
             print(credit_issues.to_string(index=False))
     else:
         print("No credit card complaints in this sample")
+
+    print("\n" + "=" * 80)
+    print("Analysis 6: Product Comparison")
+    print("=" * 80)
+    product_list = ["Credit card", "Mortgage", "Student loan"]
+    comparison = compare_products(df, product_list, metric='timely_response')
+    if not comparison.empty:
+        print(f"Comparison for: {product_list}")
+        print(comparison.to_string(index=False))
 
     print("\n" + "=" * 80)
     print("Analysis complete!")
