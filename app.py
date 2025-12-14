@@ -10,6 +10,7 @@ Updated: December 2025
 """
 
 import streamlit as st
+import logging
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -122,9 +123,10 @@ def main():
                 st.stop()  # Use st.stop() for a cleaner exit
 
     except Exception as e:
-        st.error(f"Error loading data: {e}")
-        st.info("The CFPB API may be temporarily unavailable. Please try again later.")
-        st.stop()  # Use st.stop() for a cleaner exit
+        logging.error(f"An error occurred during data loading: {e}", exc_info=True)
+        st.error("An unexpected error occurred while loading the data.")
+        st.info("The data source may be temporarily unavailable. Please try again later.")
+        st.stop()
     finally:
         # Reset loading state at the end of every run
         st.session_state.loading = False
@@ -314,7 +316,8 @@ def main():
                 fig = visualize_trends(df, freq=freq)
                 st.plotly_chart(fig, use_container_width=True)
             except Exception as e:
-                st.error(f"Error creating trend chart: {e}")
+                logging.error(f"Error creating trend chart: {e}", exc_info=True)
+                st.error("An error occurred while creating the trend chart.")
 
             # Summary statistics
             st.subheader("Trend Statistics")
