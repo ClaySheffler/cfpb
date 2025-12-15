@@ -12,6 +12,8 @@ Updated: December 2025
 import streamlit as st
 import logging
 import pandas as pd
+import uuid
+import requests
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
@@ -144,10 +146,15 @@ def main():
                 st.error("No data found with the selected filters. Try adjusting your criteria.")
                 st.stop()  # Use st.stop() for a cleaner exit
 
+    except requests.exceptions.ConnectionError as e:
+        st.error("A network error occurred. Please check your connection and try again.")
+        st.info("The data source may be temporarily unavailable.")
+        logging.error(f"Connection error during data loading: {e}", exc_info=True)
+        st.stop()
     except Exception as e:
-        logging.error(f"An error occurred during data loading: {e}", exc_info=True)
-        st.error("An unexpected error occurred while loading the data.")
-        st.info("The data source may be temporarily unavailable. Please try again later.")
+        error_id = uuid.uuid4()
+        logging.error(f"An unexpected error occurred. Error ID: {error_id}", exc_info=True)
+        st.error(f"An unexpected error occurred. Please contact support and provide this error ID: {error_id}")
         st.stop()
     finally:
         # Reset loading state at the end of every run
