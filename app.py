@@ -63,13 +63,16 @@ def main():
     # Sidebar - Data Loading Controls
     st.sidebar.header("⚙️ Data Controls")
 
-    # Initialize session state for loading
+    # Initialize session state for loading and filters
     if 'loading' not in st.session_state:
         st.session_state.loading = False
+    if 'filters' not in st.session_state:
+        st.session_state.filters = {}
 
     # Callback to manage loading state
     def handle_load_data_click():
         st.session_state.loading = True
+        st.session_state.filters = current_filters  # Update filters on load
         st.cache_data.clear()
 
     # Date range
@@ -103,6 +106,21 @@ def main():
         help="Filter by state"
     )
 
+    # Store current filter values
+    current_filters = {
+        "date_min": date_min,
+        "sample_size": sample_size,
+        "product_filter": product_filter,
+        "state_filter": state_filter,
+    }
+
+    # Initialize session state with the first set of filters
+    if not st.session_state.filters:
+        st.session_state.filters = current_filters
+
+    # Detect if filters have changed
+    filters_changed = st.session_state.filters != current_filters
+
     # Load data button
     button_label = "Loading..." if st.session_state.loading else "🔄 Load Data"
     st.sidebar.button(
@@ -112,6 +130,10 @@ def main():
         disabled=st.session_state.loading,
         help="Click to fetch the latest data. The button is disabled while data is loading."
     )
+
+    # Show a notification if filters have changed
+    if filters_changed:
+        st.sidebar.info("Filters have changed. Click 'Load Data' to apply.")
 
     # Load data and manage loading state
     try:
