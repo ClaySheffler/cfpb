@@ -123,19 +123,31 @@ def main():
     # Detect if filters have changed
     filters_changed = st.session_state.filters != current_filters
 
-    # Load data button
-    button_label = "Loading..." if st.session_state.loading else "🔄 Load Data"
+    # Load data button with dynamic label
+    if st.session_state.loading:
+        button_label = "Loading..."
+    elif filters_changed:
+        button_label = "🔄 Apply Filters"
+    else:
+        button_label = "🔄 Refresh Data"
+
+    # Determine the appropriate help text based on the button's state
+    if filters_changed:
+        help_text = "Apply the new filter settings to the dataset."
+    else:
+        help_text = "Refresh the data using the current filter settings."
+    if st.session_state.loading:
+        help_text = "Data is currently being loaded."
+
     st.sidebar.button(
         button_label,
         type="primary",
         on_click=handle_load_data_click,
         disabled=st.session_state.loading,
-        help="Click to fetch the latest data. The button is disabled while data is loading."
+        help=help_text
     )
 
-    # Show a notification if filters have changed
-    if filters_changed:
-        st.sidebar.info("Filters have changed. Click 'Load Data' to apply.")
+    # The dynamic button label now handles filter change notifications.
 
     # Load data and manage loading state
     try:
