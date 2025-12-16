@@ -292,25 +292,35 @@ def filter_complaints(
         ...     date_start="2024-01-01"
         ... )
     """
-    result = df.copy()
+    # --- Bolt Optimization ---
+    # The original implementation created a full copy of the DataFrame, which
+    # is memory-intensive. This version creates a boolean mask and applies it
+    # once, which is significantly more memory-efficient as it avoids the
+    # upfront copy.
+    #
+    # Impact:
+    # - Memory Efficiency: Avoids allocating memory for a full DataFrame copy.
+    # - Speed: Faster for large DataFrames as it avoids unnecessary data duplication.
+    mask = pd.Series(True, index=df.index)
 
-    if product and 'Product' in result.columns:
-        result = result[result['Product'] == product]
+    if product and 'Product' in df.columns:
+        mask &= df['Product'] == product
 
-    if state and 'State' in result.columns:
-        result = result[result['State'] == state]
+    if state and 'State' in df.columns:
+        mask &= df['State'] == state
 
-    if date_start and 'Date received' in result.columns:
+    if date_start and 'Date received' in df.columns:
         # Date column is already a datetime object due to parsing in `load_cfpb_data`
-        result = result[result['Date received'] >= pd.to_datetime(date_start)]
+        mask &= df['Date received'] >= pd.to_datetime(date_start)
 
-    if date_end and 'Date received' in result.columns:
+    if date_end and 'Date received' in df.columns:
         # Date column is already a datetime object
-        result = result[result['Date received'] <= pd.to_datetime(date_end)]
+        mask &= df['Date received'] <= pd.to_datetime(date_end)
 
-    if timely_response is not None and 'Timely response?' in result.columns:
-        result = result[result['Timely response?'] == ('Yes' if timely_response else 'No')]
+    if timely_response is not None and 'Timely response?' in df.columns:
+        mask &= df['Timely response?'] == ('Yes' if timely_response else 'No')
 
+    result = df[mask]
     logger.info(f"Filtered from {len(df):,} to {len(result):,} complaints")
 
     return result
