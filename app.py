@@ -146,14 +146,20 @@ def main():
                 st.error("No data found with the selected filters. Try adjusting your criteria.")
                 st.stop()  # Use st.stop() for a cleaner exit
 
-    except requests.exceptions.ConnectionError as e:
+    except requests.exceptions.ConnectionError:
+        # Sentinel Fix: Catch specific, common network errors.
+        # This provides a better user experience than a generic error
+        # and avoids logging raw exception details, which could leak info.
         st.error("A network error occurred. Please check your connection and try again.")
         st.info("The data source may be temporarily unavailable.")
-        logging.error(f"Connection error during data loading: {e}", exc_info=True)
+        logging.warning("Connection error during data loading.")
         st.stop()
     except Exception as e:
+        # Sentinel Fix: Generic exception handler.
+        # This prevents leaking stack traces to the user or logs.
+        # An error ID is generated for internal tracking and debugging.
         error_id = uuid.uuid4()
-        logging.error(f"An unexpected error occurred. Error ID: {error_id}", exc_info=True)
+        logging.error(f"An unexpected error occurred. Error ID: {error_id} Type: {type(e).__name__}")
         st.error(f"An unexpected error occurred. Please contact support and provide this error ID: {error_id}")
         st.stop()
     finally:
